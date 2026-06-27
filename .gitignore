@@ -1,0 +1,61 @@
+# Compiled object files / intermediates
+*.o
+*.obj
+*.d
+*.lo
+*.slo
+*.ko
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Libraries
+*.a
+*.la
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables
+*.out
+*.app
+*.exe
+a.out
+
+# Debug / profiling
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.gcno
+*.gcda
+*.gcov
+core
+core.*
+perf.data*
+
+# Build directories
+build/
+bin/
+obj/
+
+# VSCodeCounter generated reports
+.VSCodeCounter/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated data files
+*.npy
+*.csv
