@@ -14,11 +14,11 @@ MATHFLAGS = -fno-math-errno -fno-trapping-math -ffp-contract=fast
 # flags are needed on both the compile and link commands.
 LTOFLAGS = -flto=auto
 
-CXXFLAGS = -O3 -std=c++23 -Wall -march=native -mtune=native -fopenmp \
+CXXFLAGS = -O3 -std=c++23 -Wall -march=native -mtune=native -fopenmp -fopenmp-simd -flto=auto \
            $(MATHFLAGS) $(LTOFLAGS) \
-           -I/usr/include/eigen3 -MMD -MP
+           -isystem /usr/include/eigen3 -MMD -MP
 
-LDFLAGS = -O3 -march=native -mtune=native -fopenmp \
+LDFLAGS = -O3 -march=native -mtune=native -fopenmp -flto=auto \
           $(MATHFLAGS) $(LTOFLAGS) -lquadmath
 
 all: $(TARGET)
@@ -36,4 +36,4 @@ clean:
 
 rebuild: clean all
 
-.PHONY: all clean rebuild
+.PHONY: all clean rebuild test

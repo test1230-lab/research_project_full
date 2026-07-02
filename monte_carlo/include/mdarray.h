@@ -107,3 +107,4 @@ private:
     std::size_t N, M;
     std::vector<T> vec;
 };
+

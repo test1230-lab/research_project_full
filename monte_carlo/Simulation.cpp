@@ -18,10 +18,8 @@ void Simulation::sum_hist(Histogram& other) const
     }
 }
 
-// elastic collision in the centre-of-mass frame: scatter the relative
-// velocity by chi about a uniformly-random azimuth and return the new ion
-// velocity in the lab frame.
-vec3 Simulation::collis(const vec3& vi, const vec3& vn, const vec3& g, double gsq, double mn, double mi, double chi)
+std::array<double, 3> Simulation::collis(const std::array<double, 3>& vi, const std::array<double, 3>& vn, 
+                                        const std::array<double, 3>& g, double gsq, double mn, double mi, double chi)
 {
     const double coschi = std::cos(chi);
     const double sinchi = std::sin(chi);
@@ -47,7 +45,6 @@ vec3 Simulation::collis(const vec3& vi, const vec3& vn, const vec3& g, double gs
         return vi;
     }
 
-    //pick a point uniformly on the disk of radius norma (reject the square corners)
     double x = 0.0;
     double y = 0.0;
     double r = 0.0;
@@ -74,12 +71,10 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
 {
     const auto& d = cfg.get_derived();
     const auto& neutrals = cfg.get_neutrals();
-    const std::size_t n_neutrals = static_cast<int>(neutrals.size());
+    const std::size_t n_neutrals = neutrals.size();
     const uint64_t coll_tot = cfg.get_total_collisions();
     const int nthreads = cfg.get_nthreads();
 
-    // split coll_tot across threads, handing the first `rem` threads one extra
-    // collision so the per-thread counts sum to exactly coll_tot.
     const uint64_t base = coll_tot / nthreads;
     const uint64_t rem = coll_tot % nthreads;
     const uint64_t n_collisions = base + (static_cast<uint64_t>(tid) < rem ? 1 : 0);
@@ -87,12 +82,13 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
     const double alfa = tbl.get_alfa();
     const double kmax = tbl.get_kmax();
 
-    vec3 vaft{};
-    vec3 vbef{};
-    vec3 vneu{};
-    vec3 g{};
+    std::array<double, 3> vaft{};
+    std::array<double, 3> vbef{};
+    std::array<double, 3> vneu{};
+    std::array<double, 3> g{};
 
-    double thf = 0.0;
+    double sf = 0.0;
+    double cf = 1.0;
 
     double vper = -(d.vd + 1.0)*(rng.uniform() + 0.5);
     vaft[2] = rng.uniform()*100000.0;
@@ -102,10 +98,6 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
     //main loop
     for (uint64_t i = 0; i < n_collisions; i++)
     {
-        // report every n_report collisions and once more on the final
-        // iteration; crediting (done - reported) folds the trailing partial
-        // block into the same path, so the per-thread counts sum to exactly
-        // coll_tot and the progress readout reaches 100%.
         const uint64_t done = i + 1;
         if (done % cn::n_report == 0 || done == n_collisions)
         {
@@ -130,15 +122,14 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
         double gt2 = 0.0;
         double ta = 0.0;
         double log_ta = 0.0;
-        double bcon = 0.0;  // dimensionless cutoff from the accepted iteration
+        double bcon = 0.0;
 
-        while (true)
+        while(true)
         {
             const double rnum = 1.0 - rng.uniform(); //now its (0,1]
             const double rdis = -std::log(rnum)*alfa;
 
             delth += rdis;
-            const double thi = thf + delth;
 
             //pick neutral
             double fabun = 0.0;
@@ -155,8 +146,10 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
 
             const NeutralInfo& nu = neutrals[ineut];
 
-            vbef[0] = vper*std::sin(thi);
-            vbef[1] = vper*std::cos(thi);
+            const double sd = std::sin(delth);
+            const double cd = std::cos(delth);
+            vbef[0] = vper*(sf*cd + cf*sd);
+            vbef[1] = vper*(cf*cd - sf*sd);
             vbef[2] = vaft[2];
 
             vneu[0] = nu.beta*rng.normal_dist();
@@ -188,7 +181,6 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
             }
         }
 
-        //Bin the collision angle to obtain the ion velocity distribution.
         const int nv3 = static_cast<int>(std::abs(vbef[2])*d.scvpar);
         const int nvper = static_cast<int>(std::abs(vper)*d.scvper);
         if (nv3 <= cn::nparmx && nvper <= cn::npermx)
@@ -201,28 +193,18 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
             const double rand = rng.uniform();
             if (rand < 0.5)
             {
-                for (int idir = 0; idir < 3; idir++)
+                std::swap(vbef, vneu);
+                for (double& gi : g)
                 {
-                    const double tmp = vbef[idir];
-                    vbef[idir] = vneu[idir];
-                    vneu[idir] = tmp;
-                    g[idir] = -g[idir];
+                    gi = -gi;
                 }
             }
         }
 
-        //Polarization loop. If polarization impact parameter is greater than
-        //the impact parameter of the particle, then polarization collision
-        //occurs. Otherwise, the velocity of the particle must be renamed from
-        //VBEF to VI.
         if (b2 < b2pol)
         {
             const double b = std::sqrt(b2);
             const double u = (bcon > 0.0) ? b/(bcon*neutrals[ineut].rm) : 0.0;
-
-            // Bilinear lookup of the polarization scattering angle from the
-            // table built at startup (replaces the per-collision root-solve +
-            // Gauss quadrature). u = bn/bcon in [0,1] always lands on the grid.
             const double chipol = tbl.chi_lookup_u(log_ta, ineut, u);
 
             if (chipol != 0.0)
@@ -240,6 +222,16 @@ void Simulation::run_sim(std::atomic<uint64_t>& coll, int tid)
         }
 
         vper = std::sqrt(vaft[0]*vaft[0] + vaft[1]*vaft[1]);
-        thf = std::atan2(vaft[0], vaft[1]);
+        if (vper != 0.0)
+        {
+            const double inv = 1.0/vper;
+            sf = vaft[0]*inv;
+            cf = vaft[1]*inv;
+        }
+        else
+        {
+            sf = 0.0;
+            cf = 1.0;
+        }
     }
 }

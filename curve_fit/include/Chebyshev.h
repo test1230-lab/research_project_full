@@ -20,6 +20,7 @@ public:
     std::vector<double> get_coeffs_stdvec() const;
     double operator()(double v) const;
     eigen_vec operator()(const eigen_vec& v) const;
+    double first_deriv(double v) const;
 
     //static Chebyshev fit(double xmin, double xmax, int deg, const eigen_vec& x, const eigen_vec& y);
     static Chebyshev fit(double xmin, double xmax, int deg, std::span<const double> x, std::span<const double> y);
@@ -32,5 +33,5 @@ private:
     static double map_to_domain(double v, double vmin, double vmax);
     static eigen_mat create_pv_matrix(Eigen::Ref<const eigen_vec> x, double vmin, double vmax, int deg);
     double eval_scalar(double v) const;
-    double first_deriv(double v) const;
+
 };

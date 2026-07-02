@@ -10,8 +10,6 @@ inline double sqr(double x)
     return x*x;
 }
 
-using vec3 = std::array<double, 3>;
-
 struct NeutralInfo
 {
     //--- from config ---

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <boost/random/normal_distribution.hpp>
@@ -48,13 +49,13 @@ public:
     }
 
 private:
-    uint64_t s[4];
+    std::array<uint64_t, 4> s;
     uint64_t x;
     boost::random::normal_distribution<double> normal{0.0, 1.0};
 
     uint64_t rotl(uint64_t x, int k) const
     {
-	    return (x << k) | (x >> (64 - k));
+        return (x << k) | (x >> (64 - k));
     }
     
     uint64_t splitmix_next()

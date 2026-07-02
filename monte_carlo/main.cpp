@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <print>
@@ -10,7 +11,7 @@
 #include <atomic>
 #include <fstream>
 #include <chrono>
-#include <numeric>
+#include <random> 
 
 #include "Simulation.h"
 #include "Table.h"
@@ -18,7 +19,7 @@
 #include "constants.h"
 #include "npy.hpp"
 
-//idk where to put these
+//idk where to put these, util.h
 
 template <int N, int M>
 void write_array2d_npy(const std::string& filename, const std::array<std::array<double, M>, N>& arr)
@@ -28,10 +29,7 @@ void write_array2d_npy(const std::string& filename, const std::array<std::array<
     std::array<double, N*M> flat;
     for (int i = 0; i < N; i++)
     {
-        for (int j = 0; j < M; j++)
-        {
-            flat[j + i*M] = arr[i][j];
-        }
+        std::copy(arr[i].begin(), arr[i].end(), flat.begin() + i*M);
     }
 
     d.data_ptr = flat.data();
@@ -51,7 +49,7 @@ void write_dist_to_file(const std::string& path, const Simulation::Histogram& da
 
     file << std::scientific << std::setprecision(6);
 
-    //write normalized 2d dist
+    //write dist
     for (int i = 0; i < cn::nparmx + 1; i++)
     {
         for (int j = 0; j < cn::npermx + 1; j++)
@@ -75,6 +73,8 @@ void write_dist_to_file(const std::string& path, const Simulation::Histogram& da
 int main(int argc, char* argv[])
 {
     constexpr uint64_t seed = 123'456'789'123ULL;
+    //std::random_device rd;
+    //const uint64_t seed = rd();
 
     if (argc != 2)
     {
@@ -104,19 +104,18 @@ int main(int argc, char* argv[])
     std::vector<Simulation> sims;
     sims.reserve(nthreads);
 
-    //initalize sim for each thread
+    std::mt19937_64 seeder{seed};
     for (int i = 0; i < nthreads; i++)
     {
-        //magic number is 64 bit golden ratio used by splitmix64
-        const uint64_t tid = static_cast<uint64_t>(i);
-        const uint64_t thread_seed = seed + 0x9E3779B97F4A7C15ULL*tid;
-        sims.push_back({cfg, table, thread_seed});
+        sims.push_back({cfg, table, seeder()});
     }
 
     auto t1 = std::chrono::steady_clock::now();
-    int ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    uint64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    uint64_t total_ms = ms;
+    std::print("Initalized in {:.3f}[s]\n", ms/1000.0);
 
-    std::print("Initalized in {:.3f}s\n", ms/1000.0);
+    t0 = std::chrono::steady_clock::now();
 
     std::atomic<uint64_t> collisions{0};
 
@@ -134,13 +133,13 @@ int main(int argc, char* argv[])
         s.sum_hist(zm);
     }
 
-    //nested loop instead?
-    //find normalization constant
     double sum = 0.0;
-    for (int i = 0; i <= cn::npermx; i++)
+    for (int ipar = 0; ipar <= cn::nparmx; ipar++)
     {
-        const double w = (i + 0.5)*cfg.get_dlvper();
-        sum += w*std::accumulate(zm[i].begin(), zm[i].end(), 0);
+        for (int iper = 0; iper <= cn::npermx; iper++)
+        {
+            sum += zm[ipar][iper]*(iper + 0.5)*cfg.get_dlvper();
+        }
     }
 
     const double cntnorm = 2.0*sum*cn::pi*cfg.get_dlvpar()*cfg.get_dlvper();
@@ -151,21 +150,22 @@ int main(int argc, char* argv[])
     {
         for (int iper = 0; iper <= cn::npermx; iper++)
         {
-            if (zm[ipar][iper] > 0.0)
-            {
-                az[ipar][iper] = std::log(zm[ipar][iper]/((iper + 0.5)*cntnorm));
-            }
-            else
-            {
-                az[ipar][iper] = az_floor;
-            }
+            const double val = zm[ipar][iper];
+            az[ipar][iper] = (val > 0.0) ? std::log(val/((iper + 0.5)*cntnorm)) : az_floor;
         }
     }
+
+    t1 = std::chrono::steady_clock::now();
+    ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+
+    std::print("Simulation and post-processing completed in {:.3f}[s]\n", ms/1000.0);
+    std::print("Total time(excluding disk io for output): {:.3f}[s]\n", (total_ms + ms)/1000.0);
 
     const std::string& out = cfg.get_out_filename();
     write_array2d_npy<cn::nparmx + 1, cn::npermx + 1>(out + "av.npy", az);
     write_array2d_npy<cn::nparmx + 1, cn::npermx + 1>(out + "hist.npy", zm);
     write_dist_to_file(out + "_log_dist.csv", az, cfg, cntnorm);
+    write_dist_to_file(out + "_lin_dist.csv", zm, cfg, cntnorm);
 
     std::print("\nResults have been written to disk.\n");
 

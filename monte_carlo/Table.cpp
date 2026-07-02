@@ -48,7 +48,7 @@ void Table::init_rates(const SimConfig& cfg)
     const double gmax = d.gmax;
 
     constexpr double gl = 10.0;
-    for (std::size_t i = 0; i < n_neutrals; i++)
+    for (int i = 0; i < n_neutrals; i++)
     {
         const NeutralInfo& nu = neutrals[i];
 

@@ -28,5 +28,6 @@ private:
     Histogram hist{};
     RandomGen rng;
 
-    vec3 collis(const vec3& vi, const vec3& vn, const vec3& g, double gsq, double mn, double mi, double chi);
+    std::array<double, 3> collis(const std::array<double, 3>& vi, const std::array<double, 3>& vn,
+                    const std::array<double, 3>& g, double gsq, double mn, double mi, double chi);
 };

@@ -1,18 +1,28 @@
 #config file
-out_filename = "./output/E100"
+out_filename = "./output/E0"
 
 neutral_temp = 1000.0 #kelvin
-electric_field = 100.0 # [mV/m]
+electric_field = 0.0 # [mV/m]
 
-num_collisions = 320_000_000
+num_collisions = 40_000_000
 num_threads = 8
 
 ion_mass = 16.0 #amu
 
+#Pesnell O+, O
 [[neutrals]]
 mass = 16.0 #amu
 abundance = 1.0
 rm = 2.750e-8
 ar = 13.720e-8
-br = 0.213e-7
+br = 2.13e-8
 epsilon = 0.075 #ev
+
+#Knof O+, O
+#[[neutrala]]
+#mass = 16.0
+#abundance = 1.0
+#rm = 2.75e-8
+#ar = 10.99e-8
+#br = 0.95e-8
+#epsilon = 0.075

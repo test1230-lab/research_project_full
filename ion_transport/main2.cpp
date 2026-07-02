@@ -2,13 +2,14 @@
 #include <vector>
 #include <string>
 #include <print>
+#include <filesystem>
 
 #include "./include/mdarray.h"
 #include "./include/distrib2d.h"
 #include "./include/npy.hpp" // https://github.com/llohse/libnpy
 
 
-void  write_vec1d_npy(const std::string& filename, const std::vector<double>& vec)
+void write_vec1d_npy(const std::string& filename, const std::vector<double>& vec)
 {
     npy::npy_data_ptr<double> d;
     d.data_ptr = vec.data();
@@ -48,12 +49,28 @@ int main(int argc, char* argv[])
     const std::string moment_dir = "./moment_output/";
     const std::string grid_dir = "./output_2d/";
 
-	const double dz = 100e3;
-	const double mass = 2.66e-26;
+    std::filesystem::path md{moment_dir};
+    std::filesystem::path gd{grid_dir};
+
+    const bool created_md = std::filesystem::create_directories(md);
+    const bool created_gd = std::filesystem::create_directories(gd);
+
+    if (created_md)
+    {
+        std::print("created moment output directory\n");
+    }
+
+    if (created_gd)
+    {
+        std::print("created grid output directory\n");
+    }
+
+    const double dz = 100e3;
+    const double mass = 2.66e-26;
     
     const double t1 = 0.0;
-	const double t2 = 1000.0;
-	const double dt = 2.0;
+    const double t2 = 1000.0;
+    const double dt = 2.0;
 
     const double vmin = -5500.0;
     const double vmax = -vmin;
@@ -73,7 +90,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < 9; i++)
     {
         const double t = 100.0 + 50.0*i;
-        titles[i] =  std::to_string((int)t);
+        titles[i] =  std::to_string(static_cast<int>(t));
         dists[i] = dist2.get_f_vf_dist(t, dz);
     }
 
@@ -91,5 +108,5 @@ int main(int argc, char* argv[])
         write_array2d_npy(filename, dists[i]);
     }
 
-	return 0;
+    return 0;
 }

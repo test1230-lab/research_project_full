@@ -1,6 +1,7 @@
+#pragma once
+
 #include <vector>
 #include <cstdlib>
-#pragma once
 
 template<typename T>
 class array3d
@@ -12,7 +13,7 @@ public:
     array3d(std::size_t N, std::size_t M, std::size_t P, T val) 
         : N(N), M(M), P(P), vec(N*M*P, val){}
 
-    T& coperator[](std::size_t i, std::size_t j, std::size_t k) noexcept
+    T& operator[](std::size_t i, std::size_t j, std::size_t k) noexcept
     {
         return vec[(i*M + j)*P + k];
     }

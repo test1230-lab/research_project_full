@@ -3,18 +3,12 @@
 
 int ElectricField::num_files() const
 {
-    int n = 0;
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-    {
-        if (entry.is_regular_file()) 
-        {
-            n++;
-        }
-    }
+    const auto n = std::ranges::count_if(std::filesystem::directory_iterator(dir),
+        [](const auto& entry){ return entry.is_regular_file(); });
 
     std::print("{} coefficient files in directory\n", n);
 
-    return n;
+    return static_cast<int>(n);
 }
 
 //chatgpt code
@@ -45,8 +39,8 @@ void ElectricField::read_coeffs()
         }
     }
 
-    std::sort(files.begin(), files.end());
-    std::sort(e_field_vals.begin(), e_field_vals.end());
+    std::ranges::sort(files);
+    std::ranges::sort(e_field_vals);
 
     int n = 0;
     for (const auto& file : files)
@@ -101,8 +95,8 @@ void ElectricField::read_coeffs_new_fmt()
         }
     }
 
-    std::sort(files.begin(), files.end());
-    std::sort(e_field_vals.begin(), e_field_vals.end());
+    std::ranges::sort(files);
+    std::ranges::sort(e_field_vals);
 
     int n = 0;
     for (const auto& file : files)
@@ -155,7 +149,7 @@ double ElectricField::compute_dist_discrete(int electric_field, int aspect_angle
 {
     const int aspect_angle_idx = aspect_angle / 10;
 
-    auto it = std::lower_bound(e_field_vals.begin(), e_field_vals.end(), static_cast<double>(electric_field));
+    auto it = std::ranges::lower_bound(e_field_vals, static_cast<double>(electric_field));
 
     if (it == e_field_vals.end() || *it != static_cast<double>(electric_field))
     {
@@ -275,52 +269,3 @@ double ElectricField::compute_integral(double electric_field, int aspect_angle) 
      const double e_norm = 2.0*((electric_field - e_field_vals[0])/(e_field_vals[n_files - 1] - e_field_vals[0])) - 1.0;
     return 8.0*(*e_interp[angle_idx][0])(e_norm);
 }
-
-/*void write_vec(const std::string& filename, const std::vector<double>& vec)
-{
-    std::ofstream out(filename);
-
-    if (!out)
-    {
-        throw std::runtime_error("Failed to open " + filename);
-    }
-
-    out << std::setprecision(17);
-
-    for (double d : vec)
-    {
-        out << d << ' ';
-    }
-}
-
-
-int main()
-{
-    ElectricField ef0{"./Knof"};
-    ElectricField ef1{"./Knof1"};
-
-    const double vmin = -5000.0;
-    const double vmax = -vmin;
-    const double dv = 1.0;
-    const int nv = std::round((vmax - vmin) / dv) + 1;
-
-    const int angle = 90;
-    const double e_val = 50.0;
-
-    std::vector<double> test(nv);
-    std::vector<double> ref(nv);
-
-    #pragma omp parallel for
-    for (int i = 0; i < nv; i++)
-    {
-        const double v = vmin + dv*i;
-
-        ref[i] = ef0.compute_dist_discrete(static_cast<int>(e_val), angle, v);
-        test[i] = ef1.compute_dist(e_val, angle, v);
-    }
-
-    write_vec("./test.dat", test);
-    write_vec("./ref.dat", ref);
-
-    return 0;
-}*/

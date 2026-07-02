@@ -65,7 +65,7 @@ public:
     double get_dlvper() const {return der.dlvper; }
 
     // neutrals with their derived fields (eps in erg, mass, mu, beta, chi_cutoff)
-    // filled in by compute_derived().#include <stdexcept>#include <stdexcept>
+    // filled in by compute_derived().
     const std::vector<NeutralInfo>& get_neutrals() const { return neutrals; }
     const Derived& get_derived() const { return der; }
 
@@ -101,13 +101,13 @@ private:
         if (electric_field < 0.0)
         {
             const std::string s = std::format("Electric Field: {:.3e}", electric_field);
-            throw std::runtime_error("Electric field mangnitude < zero. " + s);
+            throw std::runtime_error("Electric field magnitude < zero. " + s);
         }
 
-        if(total_collisions <= 0)
+        if (total_collisions == 0)
         {
-            const std::string s = std::format("Thread Count: {:.3e}", static_cast<double>(total_collisions));
-            throw std::runtime_error("Total collisions must be greater <= zero. " + s);
+            const std::string s = std::format("Total Collisions: {}", total_collisions);
+            throw std::runtime_error("Total collisions must be greater than zero. " + s);
         }
 
         if (n_threads < 1)
@@ -118,7 +118,7 @@ private:
 
         if (ion_mass <= 0.0)
         {
-            const std::string s = std::format("Ion Mass: {:.6f}[amu]", neutral_temp);
+            const std::string s = std::format("Ion Mass: {:.6f}[amu]", ion_mass);
             throw std::runtime_error("Ion mass <= zero. " + s);
         }
 

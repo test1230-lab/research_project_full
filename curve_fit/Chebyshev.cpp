@@ -31,21 +31,38 @@ double Chebyshev::eval_scalar(double v) const
     return u*b_i1 - b_i2 + coeffs(0);
 }
 
+//d/dv of sum_k c_k T_k(u): carry T_k and T_k' through their recurrences together,
+//then chain-rule by du/dv = 2/(vmax - vmin)
 double Chebyshev::first_deriv(double v) const
 {
     const double u = map_to_domain(v, vmin, vmax);
+    const double du_dv = 2.0/(vmax - vmin);
 
-    double b_i1 = 0.0;
-    double b_i2 = 0.0;
+    double t_prev = 1.0;   // T_0
+    double t_curr = u;     // T_1
+    double dt_prev = 0.0;  // T_0'
+    double dt_curr = 1.0;  // T_1'
 
-    for (int i = coeffs.size() - 1; i >= 1; i--) 
+    double deriv = 0.0;//k=0 term is 0
+    if (coeffs.size() > 1)
     {
-        const double b_i = 2.0*u*b_i1 - b_i2 + coeffs(i);
-        b_i2 = b_i1;
-        b_i1 = b_i;
+        deriv += coeffs(1)*dt_curr;        //k=1
     }
 
-    return u*b_i1 - b_i2 + coeffs(0);
+    for (int k = 2; k < coeffs.size(); k++)
+    {
+        const double t_next = 2.0*u*t_curr - t_prev;
+        const double dt_next = 2.0*t_curr + 2.0*u*dt_curr - dt_prev;
+
+        deriv += coeffs(k)*dt_next;
+
+        t_prev = t_curr;
+        t_curr = t_next;
+        dt_prev = dt_curr;
+        dt_curr = dt_next;
+    }
+
+    return deriv*du_dv;
 }
 
 //Clenshaw’s algorithm

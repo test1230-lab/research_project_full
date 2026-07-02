@@ -1,0 +1,4 @@
+To plot 2d histogram from monte carlo:
+	python ./plot_monte_carlo_2d_hist.py ../monte_carlo/output/<filename>.csv
+
+
